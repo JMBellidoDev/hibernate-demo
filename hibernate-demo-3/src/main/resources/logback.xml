@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Recarga automáticamente la configuración después de modificar -->
+<configuration scan="true" scanPeriod="60 seconds">
+	<!-- Configuración del logger root - Consola -->
+	<root level="debug">
+		<appender-ref ref="STDOUT" />
+	</root>
+	
+	<!-- Appender para mostrar por consola -->
+	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+			<!-- Hora - Hilo - Nivel - Logger - mensaje -->
+			<pattern>%date [%thread] %-5level %caller{0} - %-30logger - %msg</pattern>
+		</encoder>
+	</appender>
+
+</configuration>
