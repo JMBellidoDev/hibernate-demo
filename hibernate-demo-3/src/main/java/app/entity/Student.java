@@ -2,7 +2,9 @@
 package app.entity;
 
 import java.time.LocalDate;
+import java.util.List;
 
+import app.entity.constants.DbConstants;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -11,140 +13,72 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /** Estudiante de un centro educativo */
 @Entity
-@Table(name = "Student")
+@Table(name = DbConstants.STUDENT_TABLE)
+@Data
+@NoArgsConstructor
 public class Student {
 
   /** ID */
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
-  @Column(name = "id")
-  private long id;
-
-  /** Dirección completa del estudiante */
-  @OneToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
-  @JoinColumn(name = "address_id")
-  private Address address;
+  @Column(name = DbConstants.STUDENT_ID, columnDefinition = "INT")
+  private Integer id;
 
   /** DNI */
-  @Column(name = "dni")
+  @Column(name = DbConstants.STUDENT_DNI, unique = true, columnDefinition = "CHAR(10)")
   private String dni;
 
   /** Nombre completo */
-  @Column(name = "name")
+  @Column(name = DbConstants.STUDENT_NAME, columnDefinition = "VARCHAR(100)")
   private String name;
 
   /** Fecha de nacimiento */
-  @Column(name = "birthdate")
+  @Column(name = DbConstants.STUDENT_BIRTHDATE, columnDefinition = "DATE")
   private LocalDate birthdate;
 
-  /** Número de teléfono */
-  @Column(name = "phoneNumber")
-  private String phoneNumber;
+  /** Dirección completa del estudiante */
+  @OneToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
+  @JoinColumn(name = DbConstants.STUDENT_ADDRESS_ID, referencedColumnName = DbConstants.ADDRESS_ID, columnDefinition = "INT")
+  private Address address;
 
-  /** Constructor por defecto */
-  public Student() {
-  }
+  /** Números de teléfono */
+  @ManyToMany(cascade = CascadeType.ALL)
+  @JoinTable(name = DbConstants.STUDENT_PHONE_NUMBER_TABLE, joinColumns = @JoinColumn(name = DbConstants.STUDENT_PHONE_NUMBER_STUDENT_ID), inverseJoinColumns = @JoinColumn(name = DbConstants.STUDENT_PHONE_NUMBER_PHONE_ID))
+  private List<PhoneNumber> phoneNumbers;
+
+  /** Curso que realiza el estudiante */
+  @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+  @JoinColumn(name = DbConstants.STUDENT_COURSE_ID, referencedColumnName = DbConstants.COURSE_ID)
+  private Course course;
 
   /**
    * Constructor con parámetros
-   * @param address     Dirección
-   * @param dni         DNI
-   * @param name        Nombre completo
-   * @param birthdate   Fecha de nacimiento
-   * @param phoneNumber Número de teléfono
+   * @param dni          DNI
+   * @param name         Nombre completo
+   * @param birthdate    Fecha de nacimiento
+   * @param address      Dirección
+   * @param phoneNumbers Números de teléfono
+   * @param course       Curso que realiza
    */
-  public Student(Address address, String dni, String name, LocalDate birthdate, String phoneNumber) {
-    super();
+  public Student(String dni, String name, LocalDate birthdate, Address address, List<PhoneNumber> phoneNumbers,
+      Course course) {
+
+    this.dni = dni;
+    this.name = name;
+    this.birthdate = birthdate;
     this.address = address;
-    this.dni = dni;
-    this.name = name;
-    this.birthdate = birthdate;
-    this.phoneNumber = phoneNumber;
-  }
-
-  /**
-   * Getter - id
-   * @return long - id
-   */
-  public long getId() {
-    return id;
-  }
-
-  /**
-   * Setter - id
-   * @param id ID
-   */
-  public void setId(long id) {
-    this.id = id;
-  }
-
-  /**
-   * Getter - dni
-   * @return String - dni
-   */
-  public String getDni() {
-    return dni;
-  }
-
-  /**
-   * Setter - dni
-   * @param dni DNI
-   */
-  public void setDni(String dni) {
-    this.dni = dni;
-  }
-
-  /**
-   * Getter - name
-   * @return String - name
-   */
-  public String getName() {
-    return name;
-  }
-
-  /**
-   * Setter - name
-   * @param name Nombre completo
-   */
-  public void setName(String name) {
-    this.name = name;
-  }
-
-  /**
-   * Getter - birthdate
-   * @return LocalDate - birthdate
-   */
-  public LocalDate getBirthdate() {
-    return birthdate;
-  }
-
-  /**
-   * Setter - birthdate
-   * @param birthdate Fecha de nacimiento
-   */
-  public void setBirthdate(LocalDate birthdate) {
-    this.birthdate = birthdate;
-  }
-
-  /**
-   * Getter - phoneNumber
-   * @return String - phoneNumber
-   */
-  public String getPhoneNumber() {
-    return phoneNumber;
-  }
-
-  /**
-   * Setter - phoneNumber
-   * @param phoneNumber Número de teléfono
-   */
-  public void setPhoneNumber(String phoneNumber) {
-    this.phoneNumber = phoneNumber;
+    this.phoneNumbers = phoneNumbers;
+    this.course = course;
   }
 
 }

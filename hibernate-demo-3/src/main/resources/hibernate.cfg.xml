@@ -20,11 +20,16 @@
       
       <property name = "hibernate.connection.password">root</property>
       
-      <!-- Validación de las tablas de la BBDD -->
-      <property name="hibernate.hbm2ddl.auto">validate</property>
+      <!--  Configuración JTA (Java Transaction API )-->
+      <property name="hibernate.transaction.coordinator_class">jdbc</property>
+      
+      <!-- Validación de las tablas de la BBDD -> validate / create / update -->
+      <property name="hibernate.hbm2ddl.auto">update</property>
       
       <!-- Muestra de las sentencias SQL -->
       <property name="hibernate.show_sql">true</property>
+
+      
       
    </session-factory>
 </hibernate-configuration>
