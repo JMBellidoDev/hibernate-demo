@@ -2,10 +2,12 @@
 package app.entity;
 
 import java.util.List;
+import java.util.Objects;
 
 import app.entity.constants.DbConstants;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -32,7 +34,7 @@ public class PhoneNumber {
   private String number;
 
   /** Estudiantes que tienen relacionado este número de teléfono */
-  @ManyToMany(mappedBy = "phoneNumbers")
+  @ManyToMany(mappedBy = "phoneNumbers", fetch = FetchType.EAGER)
   private List<Student> students;
 
   /**
@@ -47,7 +49,24 @@ public class PhoneNumber {
 
   @Override
   public String toString() {
-    return String.format("ID: %d, Phone Number: %s, Students: %s", id, number, students);
+    return String.format("ID: %d, Phone Number: %s", id, number);
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (getClass() != obj.getClass())
+      return false;
+    PhoneNumber other = (PhoneNumber) obj;
+    return Objects.equals(number, other.number);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(number);
   }
 
 }

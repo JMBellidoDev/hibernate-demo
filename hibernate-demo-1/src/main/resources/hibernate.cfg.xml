@@ -27,6 +27,9 @@
       <property name = "hibernate.connection.autocommit">
       	false
       </property>
+
+	<!-- Validación de las tablas de la BBDD -> validate / create / update -->
+	<property name="hibernate.hbm2ddl.auto">validate</property>
       
       <!-- List of XML mapping files -->
       <mapping resource = "Employee.hbm.xml"/>

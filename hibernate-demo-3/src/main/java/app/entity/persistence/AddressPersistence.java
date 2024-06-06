@@ -3,7 +3,6 @@ package app.entity.persistence;
 
 import java.util.List;
 
-import org.hibernate.HibernateException;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
@@ -11,7 +10,6 @@ import org.hibernate.cfg.Configuration;
 import org.hibernate.query.Query;
 
 import app.entity.Address;
-import app.entity.constants.DbConstants;
 import app.entity.persistence.exceptions.PersistenceException;
 
 /** Sistema de persistencia de direcciones */
@@ -37,28 +35,31 @@ public class AddressPersistence {
   }
 
   /**
-   * Almacena una dirección en la DB
-   * @param address Dirección a almacenar
+   * Almacena o actualiza una dirección en la DB en función de si existe o no previamente
+   * @param address Dirección a almacenar/actualizar. Almacena la dirección si no dispone de un ID asignado, o la actualiza
+   *                en caso contrario
    * @return Integer - El ID de la dirección
-   * @throws PersistenceException En caso de que exista un error durante el proceso de almacenamiento de direcciones
+   * @throws PersistenceException En caso de que exista un error durante el proceso de almacenamiento/actualización de
+   *                              direcciones
    */
-  public Integer saveAddress(Address address) throws PersistenceException {
+  public Integer saveOrUpdateAddress(Address address) throws PersistenceException {
 
+    Session session = factory.openSession();
     Transaction transaction = null;
 
     // Se persiste la información y se obtiene el ID de la dirección
-    try (Session session = factory.openSession()) {
+    try {
 
       transaction = session.beginTransaction();
 
-      session.persist(address);
-      Integer id = (Integer) session.getIdentifier(address);
+      Address mergedAddress = session.merge(address);
+      Integer id = mergedAddress.getId();
 
       transaction.commit();
 
       return id;
 
-    } catch (HibernateException e) {
+    } catch (Exception e) {
 
       if (transaction != null) {
         transaction.rollback();
@@ -66,6 +67,9 @@ public class AddressPersistence {
 
       // Se lanza otra excepción personalizada
       throw new PersistenceException(e.getMessage());
+
+    } finally {
+      session.close();
     }
   }
 
@@ -78,45 +82,9 @@ public class AddressPersistence {
 
     // Se crea la sesión y lanza la consulta
     try (Session session = factory.openSession()) {
-      return session.createQuery("FROM " + DbConstants.ADDRESS_TABLE, app.entity.Address.class).list();
+      return session.createQuery("FROM Address", app.entity.Address.class).list();
 
-    } catch (HibernateException e) {
-
-      throw new PersistenceException(e.getMessage());
-    }
-  }
-
-  /**
-   * Método que actualiza una dirección de la DB
-   * @param Address Dirección a actualizar
-   * @throws PersistenceException En caso de que exista un error durante el proceso de actualización de direcciones o
-   *                                     de que no exista previamente la dirección
-   */
-  public void updateAddress(Address address) throws PersistenceException {
-
-    Transaction transaction = null;
-
-    try (Session session = factory.openSession()) {
-
-      transaction = session.beginTransaction();
-
-      // Obtiene la dirección almacenada con el ID pasado por parámetro
-      Address extractedAddress = session.get(Address.class, address.getId());
-
-      // Si no es null, actualiza el registro
-      if (extractedAddress != null) {
-        session.merge(address);
-        transaction.commit();
-
-      } else {
-        throw new PersistenceException("No existe la dirección que se está intentando actualizar.");
-      }
-
-    } catch (HibernateException e) {
-
-      if (transaction != null) {
-        transaction.rollback();
-      }
+    } catch (Exception e) {
 
       throw new PersistenceException(e.getMessage());
     }
@@ -129,9 +97,10 @@ public class AddressPersistence {
    */
   public void deleteAddress(Integer addressId) throws PersistenceException {
 
+    Session session = factory.openSession();
     Transaction transaction = null;
 
-    try (Session session = factory.openSession()) {
+    try {
       transaction = session.beginTransaction();
 
       // Se obtiene la dirección dado el ID por parámetro y se elimina
@@ -140,13 +109,16 @@ public class AddressPersistence {
 
       transaction.commit();
 
-    } catch (HibernateException e) {
+    } catch (Exception e) {
 
       if (transaction != null) {
         transaction.rollback();
       }
 
       throw new PersistenceException(e.getMessage());
+
+    } finally {
+      session.close();
     }
   }
 
@@ -163,8 +135,7 @@ public class AddressPersistence {
     try (Session session = factory.openSession()) {
 
       // Se crea la consulta y se pasan los parámetros
-      Query<Address> query = session.createQuery(
-          String.format("FROM %s WHERE streetAddress = :staddress AND city = :cit", DbConstants.ADDRESS_TABLE),
+      Query<Address> query = session.createQuery("FROM Address WHERE streetAddress = :staddress AND city = :cit",
           app.entity.Address.class);
 
       query.setParameter("staddress", streetAddress);
@@ -186,7 +157,7 @@ public class AddressPersistence {
 
       return resultAddress;
 
-    } catch (HibernateException e) {
+    } catch (Exception e) {
 
       throw new PersistenceException(e.getMessage());
     }

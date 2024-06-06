@@ -3,7 +3,6 @@ package app.entity.persistence;
 
 import java.util.List;
 
-import org.hibernate.HibernateException;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
@@ -11,7 +10,6 @@ import org.hibernate.cfg.Configuration;
 import org.hibernate.query.Query;
 
 import app.entity.Course;
-import app.entity.constants.DbConstants;
 import app.entity.persistence.exceptions.PersistenceException;
 
 /** Sistema de persistencia de Cursos */
@@ -37,28 +35,30 @@ public class CoursePersistence {
   }
 
   /**
-   * Almacena un curso en la DB
-   * @param course Curso a almacenar
+   * Almacena/Modifica un curso en la DB
+   * @param course Curso a almacenar o modificar. Se almacenará si no dispone de un ID previo, o se actualizará en caso
+   *               contrario
    * @return Integer - El ID del curso
-   * @throws PersistenceException En caso de que exista un error durante el proceso de almacenamiento de cursos
+   * @throws PersistenceException En caso de que exista un error durante el proceso de almacenamiento/modificación de cursos
    */
-  public Integer saveCourse(Course course) throws PersistenceException {
-
-    Transaction transaction = null;
+  public Integer saveOrUpdateCourse(Course course) throws PersistenceException {
 
     // Se abre la sesión y la transacción
-    try (Session session = factory.openSession()) {
+    Session session = factory.openSession();
+    Transaction transaction = null;
+
+    try {
       transaction = session.beginTransaction();
 
       // Se persiste la información y se obtiene el ID del curso
-      session.persist(course);
-      Integer id = (Integer) session.getIdentifier(course);
+      Course mergedCourse = session.merge(course);
+      Integer id = mergedCourse.getId();
 
       transaction.commit();
 
       return id;
 
-    } catch (HibernateException e) {
+    } catch (Exception e) {
 
       if (transaction != null) {
         transaction.rollback();
@@ -66,6 +66,9 @@ public class CoursePersistence {
 
       // Se lanza otra excepción personalizada
       throw new PersistenceException(e.getMessage());
+
+    } finally {
+      session.close();
     }
   }
 
@@ -78,45 +81,9 @@ public class CoursePersistence {
 
     // Se crea la sesión y lanza la consulta
     try (Session session = factory.openSession()) {
-      return session.createQuery("FROM " + DbConstants.COURSE_TABLE, app.entity.Course.class).list();
+      return session.createQuery("FROM Course", app.entity.Course.class).list();
 
-    } catch (HibernateException e) {
-
-      throw new PersistenceException(e.getMessage());
-    }
-  }
-
-  /**
-   * Método que actualiza un curso de la DB
-   * @param Course Curso a actualizar
-   * @throws PersistenceException En caso de que exista un error durante el proceso de actualización de cursos o de que no
-   *                              exista previamente
-   */
-  public void updateCourse(Course course) throws PersistenceException {
-
-    Transaction transaction = null;
-
-    try (Session session = factory.openSession()) {
-
-      transaction = session.beginTransaction();
-
-      // Obtiene el curso almacenado con el ID pasado por parámetro
-      Course extractedCourse = session.get(Course.class, course.getId());
-
-      // Si no es null, actualiza el registro
-      if (extractedCourse != null) {
-        session.merge(course);
-        transaction.commit();
-
-      } else {
-        throw new PersistenceException("No existe la dirección que se está intentando actualizar.");
-      }
-
-    } catch (HibernateException e) {
-
-      if (transaction != null) {
-        transaction.rollback();
-      }
+    } catch (Exception e) {
 
       throw new PersistenceException(e.getMessage());
     }
@@ -129,9 +96,10 @@ public class CoursePersistence {
    */
   public void deleteCourse(Integer courseId) throws PersistenceException {
 
+    Session session = factory.openSession();
     Transaction transaction = null;
 
-    try (Session session = factory.openSession()) {
+    try {
       transaction = session.beginTransaction();
 
       // Se obtiene la dirección dado el ID por parámetro y se elimina
@@ -140,13 +108,16 @@ public class CoursePersistence {
 
       transaction.commit();
 
-    } catch (HibernateException e) {
+    } catch (Exception e) {
 
       if (transaction != null) {
         transaction.rollback();
       }
 
       throw new PersistenceException(e.getMessage());
+
+    } finally {
+      session.close();
     }
   }
 
@@ -158,15 +129,14 @@ public class CoursePersistence {
    * @return Course - Será null si no se encuentra
    * @throws PersistenceException En caso de que exista un error durante el proceso de obtención del curso
    */
-  public Course findByStreetAndCity(String courseName, String courseSchool, String courseStartingYear)
+  public Course findByNameSchoolAndStartingYear(String courseName, String courseSchool, int courseStartingYear)
       throws PersistenceException {
 
     try (Session session = factory.openSession()) {
 
       // Se crea la consulta y se pasan los parámetros
-      Query<Course> query = session.createQuery(String
-          .format("FROM %s WHERE name = :nm AND school = :schl AND startingYear = :strtngyr", DbConstants.COURSE_TABLE),
-          app.entity.Course.class);
+      Query<Course> query = session.createQuery(
+          "FROM Course WHERE name = :nm AND school = :schl AND startingYear = :strtngyr", app.entity.Course.class);
 
       query.setParameter("nm", courseName);
       query.setParameter("schl", courseSchool);
@@ -188,7 +158,7 @@ public class CoursePersistence {
 
       return resultCourse;
 
-    } catch (HibernateException e) {
+    } catch (Exception e) {
       throw new PersistenceException(e.getMessage());
     }
   }

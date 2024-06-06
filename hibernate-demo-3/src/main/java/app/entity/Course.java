@@ -25,15 +25,15 @@ public class Course {
   private Integer id;
 
   /** Nombre del curso */
-  @Column(name = DbConstants.COURSE_NAME, columnDefinition = "VARCHAR(80)")
+  @Column(name = DbConstants.COURSE_NAME, columnDefinition = "VARCHAR(80)", nullable = false)
   private String name;
 
   /** Centro escolar que imparte el curso */
-  @Column(name = DbConstants.COURSE_SCHOOL, columnDefinition = "VARCHAR(100)")
+  @Column(name = DbConstants.COURSE_SCHOOL, columnDefinition = "VARCHAR(100)", nullable = false)
   private String school;
 
   /** Año de comienzo del curso */
-  @Column(name = DbConstants.COURSE_STARTING_YEAR)
+  @Column(name = DbConstants.COURSE_STARTING_YEAR, nullable = false)
   private int startingYear;
 
   /**
@@ -46,6 +46,11 @@ public class Course {
     this.name = name;
     this.school = school;
     this.startingYear = startingYear;
+  }
+
+  @Override
+  public String toString() {
+    return String.format("ID: %d, Name: %s, School: %s, Starting Year: %d", id, name, school, startingYear);
   }
 
 }

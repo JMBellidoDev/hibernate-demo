@@ -3,6 +3,7 @@ package app.entity;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 
 import app.entity.constants.DbConstants;
 import jakarta.persistence.CascadeType;
@@ -35,50 +36,58 @@ public class Student {
   private Integer id;
 
   /** DNI */
-  @Column(name = DbConstants.STUDENT_DNI, unique = true, columnDefinition = "CHAR(10)")
+  @Column(name = DbConstants.STUDENT_DNI, unique = true, columnDefinition = "CHAR(9)", nullable = false)
   private String dni;
 
   /** Nombre completo */
-  @Column(name = DbConstants.STUDENT_NAME, columnDefinition = "VARCHAR(100)")
+  @Column(name = DbConstants.STUDENT_NAME, columnDefinition = "VARCHAR(100)", nullable = false)
   private String name;
 
   /** Fecha de nacimiento */
-  @Column(name = DbConstants.STUDENT_BIRTHDATE, columnDefinition = "DATE")
+  @Column(name = DbConstants.STUDENT_BIRTHDATE, columnDefinition = "DATE", nullable = false)
   private LocalDate birthdate;
 
   /** Dirección completa del estudiante */
   @OneToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
+
   @JoinColumn(name = DbConstants.STUDENT_ADDRESS_ID, referencedColumnName = DbConstants.ADDRESS_ID, columnDefinition = "INT")
   private Address address;
 
   /** Números de teléfono */
-  @ManyToMany(cascade = CascadeType.ALL)
+  @ManyToMany(fetch = FetchType.EAGER, cascade = { CascadeType.MERGE, CascadeType.PERSIST })
   @JoinTable(name = DbConstants.STUDENT_PHONE_NUMBER_TABLE, joinColumns = @JoinColumn(name = DbConstants.STUDENT_PHONE_NUMBER_STUDENT_ID), inverseJoinColumns = @JoinColumn(name = DbConstants.STUDENT_PHONE_NUMBER_PHONE_ID))
   private List<PhoneNumber> phoneNumbers;
 
   /** Curso que realiza el estudiante */
-  @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+  @ManyToOne(fetch = FetchType.EAGER)
   @JoinColumn(name = DbConstants.STUDENT_COURSE_ID, referencedColumnName = DbConstants.COURSE_ID)
   private Course course;
 
-  /**
-   * Constructor con parámetros
-   * @param dni          DNI
-   * @param name         Nombre completo
-   * @param birthdate    Fecha de nacimiento
-   * @param address      Dirección
-   * @param phoneNumbers Números de teléfono
-   * @param course       Curso que realiza
-   */
-  public Student(String dni, String name, LocalDate birthdate, Address address, List<PhoneNumber> phoneNumbers,
-      Course course) {
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (getClass() != obj.getClass())
+      return false;
 
-    this.dni = dni;
-    this.name = name;
-    this.birthdate = birthdate;
-    this.address = address;
-    this.phoneNumbers = phoneNumbers;
-    this.course = course;
+    Student other = (Student) obj;
+    return Objects.equals(birthdate, other.birthdate) && Objects.equals(dni, other.dni) && Objects.equals(id, other.id)
+        && Objects.equals(name, other.name);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(birthdate, dni, id, name);
+  }
+
+  @Override
+  public String toString() {
+    String birthdateStr = birthdate.toString();
+
+    return String.format("ID: %d, DNI: %s, Name: %s. Birthdate: %s, Address: %s, Phone Numbers: %s, Course: %s", id, dni,
+        name, birthdateStr, address, phoneNumbers, course);
   }
 
 }

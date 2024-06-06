@@ -3,7 +3,6 @@ package app.entity.persistence;
 
 import java.util.List;
 
-import org.hibernate.HibernateException;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
@@ -11,7 +10,6 @@ import org.hibernate.cfg.Configuration;
 import org.hibernate.query.Query;
 
 import app.entity.PhoneNumber;
-import app.entity.constants.DbConstants;
 import app.entity.persistence.exceptions.PersistenceException;
 
 /** Sistema de persistencia de números de teléfono */
@@ -27,7 +25,9 @@ public class PhoneNumberPersistence {
   public PhoneNumberPersistence() {
 
     try {
-      factory = new Configuration().configure().addAnnotatedClass(app.entity.PhoneNumber.class).buildSessionFactory();
+      factory = new Configuration().configure().addAnnotatedClass(app.entity.PhoneNumber.class)
+          .addAnnotatedClass(app.entity.Student.class).addAnnotatedClass(app.entity.Address.class)
+          .addAnnotatedClass(app.entity.Course.class).buildSessionFactory();
 
     } catch (Exception ex) {
       throw new ExceptionInInitializerError("Error al crear un objeto de la clase SessionFactory");
@@ -35,33 +35,37 @@ public class PhoneNumberPersistence {
   }
 
   /**
-   * Almacena un nuevo número de teléfono en la DB
-   * @param phoneNumber Número de teléfono
+   * Almacena / Modifica número de teléfono en la DB
+   * @param phoneNumber Número de teléfono. Será almacenado si no dispone de id, o actualizado en caso contrario
    * @return Integer - ID generado del nuevo número de teléfono
-   * @throws PersistenceException En caso de que exista un error durante el proceso de almacenamiento del número de teléfono
+   * @throws PersistenceException En caso de que exista un error durante el proceso de almacenamiento/modificación del número
+   *                              de teléfono
    */
-  public Integer savePhoneNumber(PhoneNumber phoneNumber) throws PersistenceException {
-
-    Transaction transaction = null;
+  public Integer saveOrUpdatePhoneNumber(PhoneNumber phoneNumber) throws PersistenceException {
 
     // Se abre sesión y la transacción
-    try (Session session = factory.openSession()) {
+    Session session = factory.openSession();
+    Transaction transaction = null;
+
+    try {
       transaction = session.beginTransaction();
 
       // Se almacena el número y se obtiene su ID generado
-      session.persist(phoneNumber);
-      Integer phoneNumberId = (Integer) session.getIdentifier(phoneNumber);
+      PhoneNumber mergedPhoneNumber = session.merge(phoneNumber);
+      Integer phoneNumberId = mergedPhoneNumber.getId();
 
       transaction.commit();
       return phoneNumberId;
 
-    } catch (HibernateException e) {
+    } catch (Exception e) {
 
       if (transaction != null) {
         transaction.rollback();
       }
-
       throw new PersistenceException(e.getMessage());
+
+    } finally {
+      session.close();
     }
   }
 
@@ -75,44 +79,9 @@ public class PhoneNumberPersistence {
     // Se abre la sesión y se lanza la consulta
     try (Session session = factory.openSession()) {
 
-      return session.createQuery("FROM " + DbConstants.PHONE_NUMBER_TABLE, app.entity.PhoneNumber.class).list();
+      return session.createQuery("FROM PhoneNumber", app.entity.PhoneNumber.class).list();
 
-    } catch (HibernateException e) {
-      throw new PersistenceException(e.getMessage());
-    }
-  }
-
-  /**
-   * Actualiza un número de teléfono de la DB
-   * @param phoneNumber Número de teléfono a actualizar
-   * @throws PersistenceException En caso de que exista un error durante el proceso de actualización del número de teléfono o
-   *                              de que no exista previamente
-   */
-  public void updatePhoneNumber(PhoneNumber phoneNumber) throws PersistenceException {
-
-    Transaction transaction = null;
-
-    // Se abre la sesión y la transacción
-    try (Session session = factory.openSession()) {
-      transaction = session.beginTransaction();
-
-      // Se obtiene el número almacenado y, si no es null, se actualiza
-      PhoneNumber extractedPhoneNumber = session.get(app.entity.PhoneNumber.class, phoneNumber.getId());
-
-      if (extractedPhoneNumber != null) {
-        session.merge(phoneNumber);
-        transaction.commit();
-
-      } else {
-        throw new PersistenceException("No existe el número de teléfono que se está intentando actualizar.");
-      }
-
-    } catch (HibernateException e) {
-
-      if (transaction != null) {
-        transaction.rollback();
-      }
-
+    } catch (Exception e) {
       throw new PersistenceException(e.getMessage());
     }
   }
@@ -124,10 +93,11 @@ public class PhoneNumberPersistence {
    */
   public void deletePhoneNumber(Integer phoneNumberId) throws PersistenceException {
 
+    // Se abre sesión y transacción
+    Session session = factory.openSession();
     Transaction transaction = null;
 
-    // Se abre sesión y transacción
-    try (Session session = factory.openSession()) {
+    try {
       transaction = session.beginTransaction();
 
       // Se obtiene el número de teléfono dado el ID por parámetro y se elimina
@@ -136,13 +106,15 @@ public class PhoneNumberPersistence {
 
       transaction.commit();
 
-    } catch (HibernateException e) {
+    } catch (Exception e) {
 
       if (transaction != null) {
         transaction.rollback();
       }
-
       throw new PersistenceException(e.getMessage());
+
+    } finally {
+      session.close();
     }
   }
 
@@ -158,8 +130,7 @@ public class PhoneNumberPersistence {
     try (Session session = factory.openSession()) {
 
       // Se crea la consulta y se pasan los parámetros
-      Query<PhoneNumber> query = session.createQuery(
-          String.format("FROM %s WHERE number = :num", DbConstants.PHONE_NUMBER_TABLE), app.entity.PhoneNumber.class);
+      Query<PhoneNumber> query = session.createQuery("FROM PhoneNumber WHERE number = :num", app.entity.PhoneNumber.class);
 
       query.setParameter("num", number);
 
@@ -179,7 +150,7 @@ public class PhoneNumberPersistence {
       }
       return phoneNumber;
 
-    } catch (HibernateException e) {
+    } catch (Exception e) {
 
       throw new PersistenceException(e.getMessage());
     }

@@ -36,19 +36,6 @@ public class Address {
   @Column(name = DbConstants.ADDRESS_POSTAL_CODE, columnDefinition = "CHAR(5)", nullable = false)
   private String postalCode;
 
-  /**
-   * Constructor con parámetros
-   * @param streetAddress Dirección completa
-   * @param city          Ciudad o población
-   * @param postalCode    Código postal
-   */
-  public Address(String streetAddress, String city, String postalCode) {
-    super();
-    this.streetAddress = streetAddress;
-    this.city = city;
-    this.postalCode = postalCode;
-  }
-
   @Override
   public String toString() {
     return String.format("ID: %d, Street Address: %s, City: %s, Postal Code: %s", id, streetAddress, city, postalCode);

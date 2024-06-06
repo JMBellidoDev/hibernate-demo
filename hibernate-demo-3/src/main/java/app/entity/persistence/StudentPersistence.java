@@ -3,7 +3,6 @@ package app.entity.persistence;
 
 import java.util.List;
 
-import org.hibernate.HibernateException;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
@@ -11,7 +10,6 @@ import org.hibernate.cfg.Configuration;
 import org.hibernate.query.Query;
 
 import app.entity.Student;
-import app.entity.constants.DbConstants;
 import app.entity.persistence.exceptions.PersistenceException;
 
 /** Sistema de persistencia de estudiantes */
@@ -37,33 +35,36 @@ public class StudentPersistence {
   }
 
   /**
-   * Almacena un nuevo estudiante en la DB
-   * @param student Estudiante
+   * Almacena / Modifica un estudiante en la DB
+   * @param student Estudiante del sistema. Será almacenado si no dispone de id, o actualizado en caso contrario
    * @return Integer - ID generado del nuevo estudiante
    * @throws PersistenceException En caso de que exista un error durante el proceso de almacenamiento del estudiante
    */
-  public Integer saveStudent(Student student) throws PersistenceException {
+  public Integer saveOrUpdateStudent(Student student) throws PersistenceException {
 
+    Session session = factory.openSession();
     Transaction transaction = null;
 
     // Se abre sesión y la transacción
-    try (Session session = factory.openSession()) {
+    try {
       transaction = session.beginTransaction();
 
       // Se almacena el estudiante y se obtiene su ID generado
-      session.persist(student);
-      Integer studentId = (Integer) session.getIdentifier(student);
+      Student mergedStudent = session.merge(student);
+      Integer studentId = mergedStudent.getId();
 
       transaction.commit();
       return studentId;
 
-    } catch (HibernateException e) {
+    } catch (Exception e) {
 
       if (transaction != null) {
         transaction.rollback();
       }
-
       throw new PersistenceException(e.getMessage());
+
+    } finally {
+      session.close();
     }
   }
 
@@ -77,74 +78,42 @@ public class StudentPersistence {
     // Se abre la sesión y se lanza la consulta
     try (Session session = factory.openSession()) {
 
-      return session.createQuery("FROM " + DbConstants.STUDENT_TABLE, app.entity.Student.class).list();
+      return session.createQuery("FROM Student", app.entity.Student.class).list();
 
-    } catch (HibernateException e) {
-      throw new PersistenceException(e.getMessage());
-    }
-  }
-
-  /**
-   * Actualiza un estudiante de la DB
-   * @param student Estudiante a actualizar
-   * @throws PersistenceException En caso de que exista un error durante el proceso de actualización del estudiante o de que
-   *                              no exista previamente
-   */
-  public void updateStudent(Student student) throws PersistenceException {
-
-    Transaction transaction = null;
-
-    // Se abre la sesión y la transacción
-    try (Session session = factory.openSession()) {
-      transaction = session.beginTransaction();
-
-      // Se obtiene el número almacenado y, si no es null, se actualiza
-      Student extractedStudent = session.get(app.entity.Student.class, student.getId());
-
-      if (extractedStudent != null) {
-        session.merge(student);
-        transaction.commit();
-
-      } else {
-        throw new PersistenceException("No existe el estudiante que se está intentando actualizar.");
-      }
-
-    } catch (HibernateException e) {
-
-      if (transaction != null) {
-        transaction.rollback();
-      }
-
+    } catch (Exception e) {
       throw new PersistenceException(e.getMessage());
     }
   }
 
   /**
    * Elimina un estudiante dado su ID
-   * @param studentId ID del estudiante
+   * @param dni DNI del estudiante
    * @throws PersistenceException En caso de que exista un error durante el proceso de eliminación del estudiante
    */
-  public void deleteStudent(Integer studentId) throws PersistenceException {
-
-    Transaction transaction = null;
+  public void deleteStudent(String dni) throws PersistenceException {
 
     // Se abre sesión y transacción
-    try (Session session = factory.openSession()) {
+    Session session = factory.openSession();
+    Transaction transaction = null;
+
+    try {
       transaction = session.beginTransaction();
 
       // Se obtiene el número de teléfono dado el ID por parámetro y se elimina
-      Student student = session.get(Student.class, studentId);
+      Student student = findByDni(dni);
       session.remove(student);
 
       transaction.commit();
 
-    } catch (HibernateException e) {
+    } catch (Exception e) {
 
       if (transaction != null) {
         transaction.rollback();
       }
-
       throw new PersistenceException(e.getMessage());
+
+    } finally {
+      session.close();
     }
   }
 
@@ -159,8 +128,7 @@ public class StudentPersistence {
     try (Session session = factory.openSession()) {
 
       // Se crea la consulta y se pasan los parámetros
-      Query<Student> query = session.createQuery(String.format("FROM %s WHERE dni = :num", DbConstants.STUDENT_TABLE),
-          app.entity.Student.class);
+      Query<Student> query = session.createQuery("FROM Student WHERE dni = :num", app.entity.Student.class);
 
       query.setParameter("num", dni);
 
@@ -180,7 +148,7 @@ public class StudentPersistence {
       }
       return student;
 
-    } catch (HibernateException e) {
+    } catch (Exception e) {
 
       throw new PersistenceException(e.getMessage());
     }
