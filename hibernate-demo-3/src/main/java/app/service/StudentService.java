@@ -96,7 +96,6 @@ public class StudentService {
    * @param street     Descripción completa de la dirección
    * @param city       Ciudad
    * @param postalCode Código postal
-   * @return Integer - ID de la dirección
    * @throws PersistenceException     En caso de que ocurra un error durante el acceso a los datos
    * @throws IllegalArgumentException Si alguno de los atributos de Student no son correctos
    */

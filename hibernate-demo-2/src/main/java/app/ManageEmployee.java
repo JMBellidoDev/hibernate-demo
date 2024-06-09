@@ -108,7 +108,7 @@ public class ManageEmployee {
     return employeeID;
   }
 
-  /* Lee y muestra todos los empleados */
+  /** Lee y muestra todos los empleados */
   public void listEmployees() {
 
     // Sesión y transacción

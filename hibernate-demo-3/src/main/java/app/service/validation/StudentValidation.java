@@ -65,7 +65,7 @@ public class StudentValidation {
   /**
    * Verifica que una fecha de nacimiento sea correcta. Para ello, debe ser una fecha anterior a la actual
    * @param birthdate
-   * @return
+   * @return boolean
    */
   public static boolean isValidBirthdate(LocalDate birthdate) {
     return birthdate != null && birthdate.isBefore(LocalDate.now());

@@ -48,6 +48,10 @@ public class MainApp {
   /** Nombre del segundo centro escolar */
   private static final String SCHOOL2 = "CES San Jose";
 
+  /**
+   * Main
+   * @param args Argumentos
+   */
   public static void main(String[] args) {
 
     try {

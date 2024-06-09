@@ -19,6 +19,7 @@ import app.entity.Employee;
 /** Clase ejemplo que maneja empleados */
 public class ManageEmployee {
 
+  /** Logger */
   private static final Logger LOGGER = LoggerFactory.getLogger(app.ManageEmployee.class);
 
   /** Factoría de sesiones */
@@ -107,7 +108,7 @@ public class ManageEmployee {
     return employeeID;
   }
 
-  /* Lee y muestra todos los empleados */
+  /** Lee y muestra todos los empleados */
   public void listEmployees() {
 
     // Sesión y transacción
